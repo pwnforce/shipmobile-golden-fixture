@@ -1,0 +1,28 @@
+/* ShipMobile mobile-overrides.css — framework-agnostic, additive.
+   Plain CSS only (no Tailwind directives): safe to inject regardless of the
+   repo's styling stack. Scoped narrowly so it never clobbers global styles. */
+
+/* Safe-area insets: keep app content clear of the notch and home indicator.
+   Applied as body padding via env() with 0px fallbacks (no global * reset). */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+/* Tame overscroll / rubber-banding on the document scroll container. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* 44px minimum touch targets for interactive elements (accessibility floor). */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  min-height: 44px;
+}

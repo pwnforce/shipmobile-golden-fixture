@@ -1,0 +1,39 @@
+# FIXTURE-ONLY smoke job — appended to the engine's build workflow by apply-template.mjs.
+# This block is NEVER shipped to a user's repo; it exists only in the golden fixture to
+# enforce the literal "no white screen" gate (D-02 / TMPL-07). It boots an Android
+# emulator, installs the build job's APK artifact, launches the app, screenshots it, and
+# fails if the frame is blank/single-color (scripts/assert-not-blank.js).
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest   # KVM-enabled per android-emulator-runner README; macOS is the fallback
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      # upload-artifact@v7 uploads a ZIPPED artifact; download-artifact@v7 auto-extracts
+      # into the download dir, so the apk lands NESTED under apk-artifact/, NOT in the
+      # CWD. We resolve the real path with `find` before installing rather than assuming
+      # a bare filename at the working directory.
+      - uses: actions/download-artifact@v7
+        with:
+          name: app-debug-apk
+          path: apk-artifact
+      - name: Resolve APK path
+        id: apk
+        run: |
+          APK=$(find apk-artifact -name '*.apk' | head -1)
+          test -n "$APK"
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+      - name: Emulator render assertion (no white screen)
+        uses: ReactiveCircus/android-emulator-runner@v2   # latest v2.37.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          script: |
+            adb install "${{ steps.apk.outputs.path }}"
+            adb shell monkey -p com.shipmobile.goldenfixture -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb exec-out screencap -p > screen.png
+            node scripts/assert-not-blank.js screen.png
