@@ -5,9 +5,18 @@
 # fails if the frame is blank/single-color (scripts/assert-not-blank.js).
   smoke:
     needs: build
-    runs-on: ubuntu-latest   # KVM-enabled per android-emulator-runner README; macOS is the fallback
+    runs-on: ubuntu-latest   # ubuntu exposes /dev/kvm; the Enable KVM step below grants access. macOS is the fallback.
     steps:
       - uses: actions/checkout@v6
+      # GitHub-hosted ubuntu runners expose /dev/kvm, but it is not group-accessible by
+      # default. Without this udev rule the emulator silently falls back to QEMU TCG
+      # (software) emulation, which never finishes booting -> "adb: device offline" until
+      # timeout (the TCG/CPUID warnings in the log). (RESEARCH Pitfall 5.)
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -31,6 +40,9 @@
           api-level: 34
           target: google_apis
           arch: x86_64
+          force-avd-creation: false
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: |
             adb install "${{ steps.apk.outputs.path }}"
             adb shell monkey -p com.shipmobile.goldenfixture -c android.intent.category.LAUNCHER 1
