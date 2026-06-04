@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ShipMobile Golden Fixture</string>
+    <string name="title_activity_main">ShipMobile Golden Fixture</string>
+    <string name="package_name">com.shipmobile.goldenfixture</string>
+    <string name="custom_url_scheme">com.shipmobile.goldenfixture</string>
+</resources>
